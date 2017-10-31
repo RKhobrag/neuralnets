@@ -4,13 +4,13 @@ import numpy as np
 
 
 def getFeatureMatrix(file_path):
-	data = np.genfromtxt(file_path, delimiter=',', skip_header=1,usecols=range(0,10), dtype='int', max_rows=10000)
+	data = np.genfromtxt(file_path, delimiter=',', skip_header=1,usecols=range(0,10), dtype='int', max_rows=100000)
 	data= data
 	np.c_[data,	np.ones(data.shape[0])]
 	return data 
 
 def getLabels(file_path):
-	data = np.genfromtxt(file_path, delimiter=',', skip_header=1,usecols=range(10,11), dtype='int', max_rows=10000)
+	data = np.genfromtxt(file_path, delimiter=',', skip_header=1,usecols=range(10,11), dtype='int', max_rows=100000)
 	return data
 
 
@@ -36,24 +36,26 @@ def activation(input_values, input_weights):
 	if(t != 0):
 		sum1 = (sum1-min(sum1))/t
 	# #print("sum1 ",sum1.shape) #20*1
-	x2 = sigmoid(sum1)
+	return sigmoid(sum1), sum1
 
 def train(featureMatrix, labels, learning_rate):
 
 	# initialize w
 	
 	
-	input_layer, hidden_layer, output_layer = 10,40,10
-	w1 = np.random.uniform(size=input_layer*hidden_layer)
-
-	#####temp assignment TBD###########
-	# w1 = np.ones(input_layer*hidden_layer)
+	input_layer, hidden_layer1, hidden_layer2, output_layer = 10,20,20,10
+	w1 = np.random.uniform(size=input_layer*hidden_layer1)
 	w1 = np.split(w1,input_layer)
 	w1 = np.array(w1)
-	w2 = np.random.uniform(size=hidden_layer*output_layer)
-	# w2 = np.ones(hidden_layer*output_layer)
-	w2 = np.split(w2,hidden_layer)
+
+	w2 = np.random.uniform(size=hidden_layer1*hidden_layer2)
+	w2 = np.split(w2,hidden_layer1)
 	w2 = np.array(w2)
+
+	w3 = np.random.uniform(size=hidden_layer2*output_layer)
+	# w2 = np.ones(hidden_layer*output_layer)
+	w3 = np.split(w3,hidden_layer2)
+	w3 = np.array(w3)
 
 	#print("w1", w1, "\n")
 	#print("w2", w2, "\n")
@@ -61,89 +63,94 @@ def train(featureMatrix, labels, learning_rate):
 	for p in range(0, 10):
 		for idx, x1 in enumerate(featureMatrix):
 			print(idx)
-			#print('\n')
-			# #print(w1 ",w1.shape) #10*20
-			#print("x1 ",x1) #10*1
 
-			sum1 = np.transpose(w1).dot(x1)
-			# #print("sum1", sum1, "\n")
-			t = (max(sum1)-min(sum1))
-			if(t != 0):
-				sum1 = (sum1-min(sum1))/t
-			# #print("sum1 ",sum1.shape) #20*1
-			x2 = sigmoid(sum1)
-			#print("sigmoid(sum1) ",x2, "\n") #20*1
+			x2, sum1 = activation(x1, w1)
 
-			sum2 = np.transpose(w2).dot(np.transpose(x2))
-			#print("sum2", sum2, "\n")
-			t = (max(sum2)-min(sum2))
-			if(t != 0):
-				sum2=(sum2-min(sum2))/t
-			x3 = softmax(sum2)
+			x3, sum2 = activation(x2, w2)
+
+			x4, sum3 = activation(x3, w3)
+
+			x4 = softmax(sum3)
 			#print("softmax", x3, "\n")
-			y = np.argmax(x3)
+			y = np.argmax(x4)
 
-			sig2 = sigmoid(sum2)
+			sig4 = sigmoid(sum3)
 			#print("sigmoid(sum2)",sig2)
 			if(y != labels[idx]):
 				y_ = np.zeros(output_layer)
 				y_[labels[idx]] = 1
-				#print("y_", y_)
 
-				d_E2 = -np.divide(y_, sig2+0.1) + np.divide((1-y_),(1-sig2+0.1))
+				d_E3 = -np.divide(y_, sig4) + np.divide((1-y_),(1-sig4))
 				#print("d_E2", d_E2, "\n")
-				d_sig2 = d_sigmoid(sum2)
+				d_sig3 = d_sigmoid(sum3)
 				#print("d_sig2", d_sig2, "\n")
-				d_sum2 = x2
+				d_sum3 = x3
 
-				t = np.multiply(d_E2, d_sig2)
-				del_E2=[]
-				for idx,i in enumerate(d_sum2):
-					del_E2.append(i*t)
-				del_E2 = np.array(del_E2) #20*10
+				t = np.multiply(d_E3, d_sig3)
+				del_E3=[]
+				for i in (d_sum3):
+					del_E3.append(i*t)
+				del_E3 = np.array(del_E3) 
 				#print("del_E2 ",del_E2, "\n")
 
 				# #print("w2 ",w2.shape)
-				w2 = w2 - learning_rate*del_E2
+				w3 = w3 - learning_rate*del_E3
 				# print("w2 ",w2)
 
-				d_E1 = w2.dot(np.multiply(d_E2, d_sig2)) #20*1
+				d_E2 = w3.dot(np.multiply(d_E3, d_sig3))
 				#print("d_E1 ",d_E1, "\n")
-				d_sig1 = d_sigmoid(sum1) #20*1
-				d_sum1 = x1 #10*1
+				d_sig2 = d_sigmoid(sum2)
+				d_sum2 = x2
 				#print("d_sum1 ",d_sum1, "\n")
 
+				t=np.multiply(d_E2, d_sig2)
+				del_E2=[]
+				for i in (d_sum2):
+					del_E2.append(i*t)
+				del_E2 = np.array(del_E2)
+				#print("del_E1", del_E1, "\n")
+				
+				# #print("w1 ",w1.shape)
+				w2 = w2 - learning_rate*del_E2
+				# print("w1 ",w1)
 
-				t=np.multiply(np.transpose(d_E1), d_sig1)
-				# #print("t ",t.shape) #10*20
+				d_E1 = w2.dot(np.multiply(d_E2, d_sig2))
+				#print("d_E1 ",d_E1, "\n")
+				d_sig1 = d_sigmoid(sum1)
+				d_sum1 = x1
+				#print("d_sum1 ",d_sum1, "\n")
 
+				t=np.multiply(d_E1, d_sig1)
 				del_E1=[]
-				for idx,i in enumerate(d_sum1):
+				for i in (d_sum1):
 					del_E1.append(i*t)
-				del_E1 = np.array(del_E1) #10*20
+				del_E1 = np.array(del_E1)
 				#print("del_E1", del_E1, "\n")
 				
 				# #print("w1 ",w1.shape)
 				w1 = w1 - learning_rate*del_E1
-				# print("w1 ",w1)
 
-	return w1, w2
+	return w1, w2, w3
 
 
-def test(featureMatrix, labels, w1, w2):
+def test(featureMatrix, labels, w1, w2, w3):
 
 	count = 0
 	f = open('output.csv', 'w')
+
+	print(w1,"\n", w2,"\n", w3)
 	print("\n\n\n\n===========Testing===============\n\n\n\n")
 	for idx, x1 in enumerate(featureMatrix):
-		sum1 = np.transpose(w1).dot(np.transpose(x1))
-		sum1=(sum1-min(sum1))/(max(sum1)-min(sum1))
-		x2 = sigmoid(sum1)
-		sum2 = np.transpose(w2).dot(np.transpose(x2))
-		sum2=(sum2-min(sum2))/(max(sum2)-min(sum2))
-		x3 = softmax(sum2)
-		print("softmax ", x3, "\n")
-		y = (np.argmax(x3))
+		x2, sum1 = activation(x1, w1)
+		
+		x3, sum2 = activation(x2, w2)
+
+		x4, sum3 = activation(x3, w3)
+		x4 = softmax(sum3)
+
+		# print("softmax ", x3, "\n")
+		
+		y = np.argmax(x4)
 
 		# if(y == labels[idx]):
 		# 	count = count + 1
@@ -156,12 +163,12 @@ def test(featureMatrix, labels, w1, w2):
 
 
 def main():
-	learning_rate = 0.001
+	learning_rate = 0.01
 	file_name = 'train.csv'
 	featureMatrix = getFeatureMatrix(file_name)
 
 	labels = getLabels(file_name)
-	w1,w2 = train(featureMatrix, labels, learning_rate)
+	w1,w2,w3 = train(featureMatrix, labels, learning_rate)
 
 	# weights1 = open('w1', 'w')
 	# pickle.dump(",".join(str(i) for i in j for j in w1),weights1)  
@@ -170,7 +177,7 @@ def main():
 
 	file_name = 'train.csv'
 	featureMatrix = getFeatureMatrix(file_name)
-	accuracy = test(featureMatrix, labels, w1,w2)
+	accuracy = test(featureMatrix, labels, w1,w2,w3)
 	#print(accuracy)
 
 
